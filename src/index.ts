@@ -9,7 +9,7 @@ import { Strategy as GitHubStrategy } from "passport-github";
 import passport from "passport";
 import { env } from "process";
 import jwt from "jsonwebtoken";
-
+import cors from "cors";
 
 const main = async () => {
     // might need to set username and password
@@ -29,6 +29,13 @@ const main = async () => {
     passport.serializeUser((user: any, done) => {
         done(null, user.accessToken);
       });
+    // app.use(cors({origin: "*" }));
+    app.use(cors()); 
+    // app.use((_req, res, next) => {
+    //     res.header("Access-Control-Allow-Origin", "*");
+    //     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    //     next();
+    // }) 
     app.use(passport.initialize());
     
     passport.use(new GitHubStrategy({
@@ -50,7 +57,10 @@ const main = async () => {
             }).save();
         }
         cb(null, {
-            accessToken: jwt.sign({ userId: user.id}, env.ACCESS_TOKEN, {expiresIn: "1y"} )}); // could also have refresh token
+            accessToken: jwt.sign(
+                { userId: user.id}, 
+                env.ACCESS_TOKEN, 
+                {expiresIn: "1y"} )}); // could also have refresh token
       }
     ));
 
@@ -63,6 +73,39 @@ const main = async () => {
             //correct even for PROD, will start local server on user's computer
             res.redirect(`http://localhost:54321/auth/${req.user.accessToken}`); 
         });
+    
+    app.get(`/me`, async (req, res) => {
+        // has this format: Bearer 1232aldjshfkjgh
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            res.send({user: null});
+            return;
+        }
+
+        const token = authHeader.split(" ")[1];
+        if (!token) {
+            res.send({user: null});
+            return;
+        }
+
+        let userId = "";
+
+        try {
+            const payload: any = jwt.verify(token, env.ACCESS_TOKEN)
+            userId = payload.userId;
+        } catch (err) {
+            res.send({user: null});
+            return;
+        }
+
+        if (!userId) {
+            res.send({ user: null });
+            return;
+        }
+
+        const user = await User.findOne(userId);
+        res.send({ user });
+    })
 
     app.get('/', (_req, res) => {
         res.send("hello");
