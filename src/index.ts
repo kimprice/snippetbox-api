@@ -73,7 +73,7 @@ const main = async () => {
     }
   );
 
-  app.get("/todo", isAuth, async (req: any, res) => {
+  app.get("/todo", isAuth, async (req, res) => {
     const todos = await Todo.find({
         where: {ownerId: req.userId},
         order: { id: "DESC"},
@@ -81,8 +81,7 @@ const main = async () => {
     res.send({todos});
   });
 
-  // casting req to any is prob not good practice...
-  app.post("/todo", isAuth, async (req: any, res) => {
+  app.post("/todo", isAuth, async (req, res) => {
     // might want to do some validation here first
     // ex if(req.body.text.length < 1000)
     const todo = await Todo.create({
@@ -93,11 +92,15 @@ const main = async () => {
   });
 
 // put is for updates   
-  app.put("/todo", isAuth, async (req: any, res) => {
+  app.put("/todo", isAuth, async (req, res) => {
     const todo = await Todo.findOne(req.body.id);
     if (!todo) {
         res.send({todo: null});
         return;
+    }
+    // need to test this logic
+    if (todo.ownerId !== req.userId) {
+        throw new Error("not authorized");
     }
     todo.completed = !todo.completed;
     await todo.save();

@@ -1,8 +1,6 @@
-import { RequestHandler, Request } from "express";
+import { RequestHandler } from "express";
 import jwt from 'jsonwebtoken';
 import { env } from "process";
-
-export type ReqWithUserId = Request<{}, any, any, {}> & {userId: number};
 
 // first object is for specifying body, fourth is for specifying query
 export const isAuth: RequestHandler<
@@ -19,7 +17,7 @@ export const isAuth: RequestHandler<
 
         try {
             const payload: any = jwt.verify(token, env.ACCESS_TOKEN);
-            (req as any).userId = payload.userId;
+            req.userId = payload.userId;
             next();
             return;
         } catch {}
